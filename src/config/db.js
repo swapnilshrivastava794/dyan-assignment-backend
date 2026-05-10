@@ -1,7 +1,11 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
+// Support both individual variables and full Connection String (Render style)
 const pool = new Pool({
+  connectionString: process.env.DATABASE_URL, // Render gives this
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false, // Required for Render/ElephantSQL
+  // Fallback for local
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   database: process.env.DB_NAME,
