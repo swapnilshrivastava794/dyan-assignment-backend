@@ -21,10 +21,13 @@ exports.uploadFile = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please upload a file' });
     }
 
+    console.log("File received, starting processing...");
+
     const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
+    // This is where it might fail if DB connection is wrong
     await Product.initTable();
 
     let successCount = 0;
@@ -64,12 +67,20 @@ exports.uploadFile = async (req, res) => {
         await Product.upsert(values);
         successCount++;
       } catch (err) {
+        // Log individual row errors but continue
         console.error(`Row fail: ${row.product_id}`, err.message);
       }
     }
 
     res.json({ success: true, message: `${successCount} products uploaded successfully!` });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error processing file' });
+    console.error('CRITICAL UPLOAD ERROR:', error);
+    // Returning the actual error message to the frontend for debugging
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error processing file', 
+      error: error.message,
+      stack: error.stack // Optional: remove this after debugging
+    });
   }
 };
